@@ -1,0 +1,255 @@
+settings:
+  teleportSound: "ENTITY_ENDERMAN_TELEPORT"
+  clickSound: "UI_BUTTON_CLICK"
+  cancelWord: "annuler"
+
+messages:
+  noPerm: "&7&l« &c&lSH &8&l» &7Vous n'avez pas la permission de faire ça."
+  unknownCommand: "&7&l« &c&lSH &8&l» &7Vous ne pouvez pas faire ça ici."
+  needToWait: "&7&l« &c&lSH &8&l» &7Vous devez attendre encore &c%time% secondes &7pour utiliser ce Home."
+  teleportComplete: "&7&l« &a&lSH &8&l» &7Téléportation au Home: %home%&7."
+  homeCreated: "&7&l« &a&lSH &8&l» &7Le home: %id% &7a été créé."
+  notOnIsland: "&7&l« &c&lSH &8&l» &7Vous n'êtes pas sur &cvotre île&7. Vous ne pouvez pas placer de Home ici. "
+  noHome: "&7&l« &c&lSH &8&l» &7Vous n'avez &caucun Home &7actuellement."
+  unknownHome: "&7&l« &c&lSH &8&l» &7Vous n'avez pas de home avec cet ID."
+  reachedMaxHomes: "&7&l« &c&lSH &8&l» &7Vous avez atteint votre &cnombre maximum de Homes&7."
+  positionChanged: "&7&l« &a&lSH &8&l» &7La position du Home %id% &7a été modifié."
+  materialChanged: "&7&l« &a&lSH &8&l» &7L'item du Home %id% &7a été modifié."
+  nameChanged: "&7&l« &a&lSH &8&l» &7Le nom du Home %id% &7est maintenant: %home%&7."
+  IDChanged: "&7&l« &a&lSH &8&l» &7L'ID du Home %home% &7a été modifié."
+  homeDeleted: "&7&l« &a&lSH &8&l» &7Le Home %id% &7a bien été supprimé."
+  notValidHome: "&7&l« &c&lSH &8&l» &7Le Home vient d'être &csupprimé&7, il n'est plus positionné sur &cvotre île&7."
+  changingName: |-
+    &8&l« &e&lSH &8&l» &7Écrivez le &enom du Home &7qui apparaitra sur le menu des homes.
+    &8&l« &e&lSH &8&l» &7Tapez &bannuler &7pour annuler votre action.
+  changingID: |-
+    &8&l« &e&lSH &8&l» &7Choisissez le &enouvel ID &7de ce Home (&e/home <id>&7)
+    &8&l« &e&lSH &8&l» &7Tapez &bannuler &7pour annuler votre action.
+  alreadyID: "&7&l« &c&lSH &8&l» &7Cet ID est déjà utilisé pour un autre Home."
+  changeCancel: "&7&l« &e&lSH &8&l» &7Modification du Home &eannulé&7."
+  admin:
+    unknownPlayer: "&7&l« &c&lSH &8&l» &7Ce joueur n'a pas été trouvé."
+    noHome: "&7&l« &c&lSH &8&l» &7Le joueur &c%joueur% &7ne possède pas de Home."
+    teleport: "&7&l« &a&lSH &8&l» &7Téléportation au Home: &f%id% &7du joueur &a%joueur%&7."
+    delete: "&7&l« &a&lSH &8&l» &7Suppression du Home: %home% &7du joueur &a%joueur%&7."
+
+groups:
+  default: #valeur par défaut si le joueur n'appartient à aucun des groupes ci-contre
+    cooldown: 180
+    maxHomes: 3
+  vip: #la permission sera donc shhomes.group.vip
+    cooldown: 120
+    maxHomes: 8
+  vip+: #la permission sera donc shhomes.group.vip+
+    cooldown: 60
+    maxHomes: 15
+  vipelite: #la permission sera donc shhomes.group.vipelite
+    cooldown: 30
+    maxHomes: 20
+
+menus:
+  home:
+    name: "&8&lMenu &8| Homes"
+    size: 6
+    items:
+      filler:
+        material: "BLACK_STAINED_GLASS_PANE"
+        name: " "
+      homes:
+        slots: "11-15,20-24,29-33,38-42"
+        locked:
+          name: "&cHome verrouillé"
+          material: "BARRIER"
+          lore:
+            - ""
+            - "&7Vous n'avez pas accès à cet"
+            - "&cemplacement de Home &7."
+        empty:
+          name: "&eHome disponible"
+          lore:
+            - ""
+            - "&7Cet emplacement de Home est &evide&7."
+            - ""
+            - "&8ᴛɪᴘѕ : ᴘʟᴀᴄᴇᴢ ᴜɴ ʜᴏᴍᴇ ᴇɴ ꜰᴀɪѕᴀɴᴛ"
+            - "        &e/sethome <id>"
+            - ""
+            - "&7&o(( &e&oCliquez &7&opour placer un home"
+            - "&7&oà votre &e&oposition actuelle &7&o))"
+        set:
+          name: "&6Home &e#%id%"
+          lore:
+            - ""
+            - "&8• &fID de ce home : &e%id%"
+            - ""
+            - "&8ᴛɪᴘѕ : ᴛᴇʟᴇᴘᴏʀᴛᴇᴢ ᴠᴏᴜѕ ᴀᴜ ʜᴏᴍᴇ ᴀᴠᴇᴄ"
+            - "        &e/home %id%"
+            - ""
+            - "&7&o(( &e&oClic Gauche &7&opour s'y téléporter &7&o))"
+            - "&7&o(( &e&oClic Droit &7&opour accèder aux paramètres &7&o))"
+      #you can put any other item here, the filler will replace every empty slots in the inventory.
+
+  adminHome:
+    name: "&8&lMenu &8| Homes de %joueur%"
+    size: 6
+    items:
+      filler:
+        material: "BLACK_STAINED_GLASS_PANE"
+        name: " "
+      homes:
+        slots: "11-15,20-24,29-33,38-42"
+        locked:
+          name: "&cHome verrouillé"
+          material: "BARRIER"
+          lore:
+            - ""
+            - "&7Le joueur n'a pas accès à cet"
+            - "&cemplacement de Home&7."
+        empty:
+          name: "&eHome disponible"
+          lore:
+            - ""
+            - "&7Cet emplacement de Home est &evide&7."
+            - ""
+            - "&7Le joueur peut placer un Home ici"
+            - "&7mais il ne l'a pas encore fait."
+        set:
+          lore:
+            - ""
+            - "&f» Clic Gauche: &6Se téléporter au Home"
+            - "&f» Clic Droit: &cSupprimer le Home"
+            - ""
+            - "&7L'id du Home est: &f%id%"
+            - "&7Dernière utilisation du joueur:"
+            - "&7il y a &3%time% minutes&7."
+      #you can put any other item here, the filler will replace every empty slots in the inventory.
+
+  settings:
+    name: "&8Paramètre du Home: %id%"
+    size: 4
+    items:
+      filler:
+        material: "BLACK_STAINED_GLASS_PANE"
+        name: " "
+      changeName:
+        slots: "10"
+        material: "FEATHER"
+        name: "&bChanger le nom du Home"
+        lore:
+          - "&8ᴛɪᴘѕ : ᴠᴏᴜѕ ᴘᴏᴜᴠᴇᴢ ʏ ɪɴᴄʟᴜʀᴇ ᴅᴇѕ &bᴄᴏᴅᴇѕ ᴄᴏᴜʟᴇᴜʀѕ"
+          - ""
+          - "&7&o(( &b&oCliquez &7&opour changer le nom"
+          - "&7&odu home dans le menu Homes &7&o))"
+      changeID:
+        slots: "12"
+        material: "COMMAND_BLOCK"
+        name: "&eChanger l'ID du Home"
+        lore:
+          - ""
+          - "&7&l« &7L'ID d'un home vous permet de vous"
+          - "&7y téléporter plus rapidement &8(/home <id>) &8&l»"
+          - ""
+          - "&7&o(( &e&oCliquez &7&opour changer l'ID &7&o))"
+      changeMaterial:
+        slots: "14"
+        material: "CHEST"
+        name: "&6Changer l'item du Home"
+        lore:
+          - ""
+          - "&7&o(( &6&oCliquez &7&opour changer l'item"
+          - "&7&odu home dans le menu Homes &7&o))"
+      changePosition:
+        slots: "16"
+        material: "RED_BED"
+        name: "&aChanger la position"
+        lore:
+          - ""
+          - "&7&o(( &a&oCliquez &7&opour positionner"
+          - "&7&oce home à votre &a&oposition actuelle &7&o))"
+      deleteHome:
+        slots: "22"
+        material: "BARRIER"
+        name: "&cSupprimer le Home"
+        lore:
+          - ""
+          - "&7&o(( &c&oCliquez &7&opour supprimer ce home &7&o))"
+      return:
+        slots: "27"
+        material: "ARROW"
+        name: "&c⤾ Retour &7(Clic)"
+        lore:
+          - "&fRetourner à la liste de vos Homes"
+        #you can put any other item here, the filler will replace every empty slots in the inventory.
+
+  materialSelection:
+    name: "&8Choisissez l'item du Home"
+    size: 6
+    items:
+      filler:
+        material: "BLACK_STAINED_GLASS_PANE"
+        name: " "
+      selectable:
+        slots: "0-44"
+        materials:
+          - "RED_BED"
+          - "GREEN_BED"
+          - "BLUE_BED"
+          - "PURPLE_BED"
+          - "BLACK_BED"
+          - "DIAMOND_BLOCK"
+          - "EMERALD_BLOCK"
+          - "NETHERITE_BLOCK"
+          - "SPAWNER"
+          - "WHEAT"
+          - "CARROT"
+          - "POTATO"
+          - "OAK_WOOD"
+          - "BIRCH_WOOD"
+          - "ACACIA_WOOD"
+          - "DARK_OAK_WOOD"
+          - "REDSTONE"
+          - "AMETHYST_SHARD"
+          - "DIAMOND_PICKAXE"
+          - "IRON_AXE"
+          - "GOLDEN_HOE"
+          - "DIAMOND_SWORD"
+          - "PRISMARINE_CRYSTALS"
+          - "ZOMBIE_SPAWN_EGG"
+          - "GRASS_BLOCK"
+          - "SAND"
+          - "SOUL_SAND"
+        lore:
+          - ""
+          - "&7&l« &7Choisissez un item pour le faire"
+          - "&7apparaître dans le &6Menu Homes&7. &8&l»"
+          - ""
+          - "&7&o(( &e&oCliquez &7&opour choisir cet item &7&o))"
+      return:
+        slots: "45"
+        material: "ARROW"
+        name: "&c⤾ Retour &7(Clic)"
+        lore:
+          - "&fRetourner aux paramètres du Home"
+
+  deleteHome:
+    name: "&cSupprimer le Home ?"
+    size: 3
+    items:
+      filler:
+        material: "BLACK_STAINED_GLASS_PANE"
+        name: " "
+      delete:
+        slots: "11"
+        material: "BARRIER"
+        name: "&c&lSupprimer le Home"
+        lore:
+          - "&4ᴀᴄᴛɪᴏɴ ɪʀʀᴇᴠᴇʀѕɪʙʟᴇ."
+          - ""
+          - "&7&o(( &cCliquez &7&opour supprimer ce home &7&o))"
+      save:
+        slots: "15"
+        material: "RED_BED"
+        name: "&aNe pas supprimer le Home"
+        lore:
+          - ""
+          - "&7&o(( &a&oCliquez &7&opour annuler la suppression &7&o))"
+

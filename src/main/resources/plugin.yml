@@ -1,0 +1,49 @@
+name: SHHomes
+version: '${project.version}'
+main: org.Cry_Legende.sHHomes.SHHomes
+api-version: '1.21'
+author: Cry_Legende
+description: Homes sur l'île du joueur (remplace EasyHome, reprend ses données)
+depend: [ SuperiorSkyblock2 ]
+
+commands:
+  home:
+    description: Menu des homes, /home <id>, /home view <joueur>
+    permission: shhomes.home
+    usage: /<command>
+    aliases: [ homes ]
+  sethome:
+    description: Place un home à votre position
+    permission: shhomes.sethome
+    usage: /<command> [id]
+  delhome:
+    description: Supprime un home
+    permission: shhomes.delhome
+    usage: /<command> <id>
+
+permissions:
+  shhomes.*:
+    default: op
+    children:
+      shhomes.home: true
+      shhomes.sethome: true
+      shhomes.delhome: true
+      shhomes.admin.*: true
+  shhomes.admin.*:
+    default: false
+    children:
+      shhomes.admin.tp: true
+      shhomes.admin.delete: true
+      shhomes.admin.view: true
+  shhomes.home:
+    default: false
+  shhomes.sethome:
+    default: false
+  shhomes.delhome:
+    default: false
+  shhomes.admin.tp:
+    default: false
+  shhomes.admin.delete:
+    default: false
+  shhomes.admin.view:
+    default: false
