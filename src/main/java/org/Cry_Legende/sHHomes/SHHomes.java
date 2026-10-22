@@ -280,8 +280,13 @@ public final class SHHomes extends JavaPlugin implements Listener {
         }
     }
 
-    private String dialogText(String path, String... replacements) {
-        return replace(getConfig().getString("dialogues." + path, ""), replacements);
+    /**
+     * Texte de la section dialogues. Aucune valeur par défaut explicite ici : une clé absente du config.yml du serveur
+     * retombe sur celle du config.yml embarqué dans le jar (les défauts que Bukkit attache à getConfig()).
+     */
+    String dialogText(String path, String... replacements) {
+        String text = getConfig().getString("dialogues." + path);
+        return replace(text == null ? "" : text, replacements);
     }
 
     private List<String> dialogLines(String path, String... replacements) {

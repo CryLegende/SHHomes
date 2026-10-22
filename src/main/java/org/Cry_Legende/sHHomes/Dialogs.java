@@ -284,7 +284,7 @@ final class Dialogs implements Listener {
         }
         Taken taken = take(player.getUniqueId(), parts[0], parts[1], System.nanoTime());
         if (taken.outcome() == Outcome.EXPIRED) {
-            player.sendMessage(LEGACY.deserialize(plugin.getConfig().getString("dialogues.messages.expire", "")));
+            player.sendMessage(LEGACY.deserialize(plugin.dialogText("messages.expire")));
             return;
         }
         if (taken.outcome() != Outcome.OK) {
@@ -296,7 +296,7 @@ final class Dialogs implements Listener {
             taken.pending().reaction().accept(player, confirmed, confirmed ? (text == null ? "" : text) : null);
         } catch (RuntimeException e) {
             plugin.getLogger().log(Level.WARNING, "Dialogue « " + parts[0] + " » de " + player.getName() + " : " + e, e);
-            player.sendMessage(LEGACY.deserialize(plugin.getConfig().getString("dialogues.messages.erreur", "")));
+            player.sendMessage(LEGACY.deserialize(plugin.dialogText("messages.erreur")));
         }
     }
 }
