@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,8 +50,15 @@ public final class SHHomes extends JavaPlugin implements Listener {
     private record PendingEdit(Edit type, Home home) {
     }
 
+    /**
+     * Issue d'une modification d'ID ou de nom.
+     */
+    private enum Commit {DONE, ID_TAKEN}
+
     private HomeStore store;
     private final Map<UUID, PendingEdit> pending = new ConcurrentHashMap<>();
+    // null sur un serveur sans dialogues (avant 1.21.6) : tout passe alors par le chat
+    private Dialogs dialogs;
 
     @Override
     public void onEnable() {
@@ -65,10 +73,14 @@ public final class SHHomes extends JavaPlugin implements Listener {
             getCommand(name).setTabCompleter(commands);
         }
         getServer().getPluginManager().registerEvents(this, this);
+        enableDialogs();
     }
 
     @Override
     public void onDisable() {
+        if (dialogs != null) {
+            dialogs.clear();
+        }
         Bukkit.getOnlinePlayers().forEach(p -> {
             if (p.getOpenInventory().getTopInventory().getHolder() instanceof Menu) {
                 p.closeInventory();
@@ -237,9 +249,155 @@ public final class SHHomes extends JavaPlugin implements Listener {
     }
 
     public void startEdit(Player player, Edit type, Home home) {
+        if (dialogs != null && dialogs.supported(player)) {
+            player.closeInventory();
+            if (editDialog(player, type, home, null, null)) {
+                return;
+            }
+        }
+        chatEdit(player, type, home);
+    }
+
+    /**
+     * Saisie dans le chat (clients sans dialogues, ou dialogues désactivés).
+     */
+    private void chatEdit(Player player, Edit type, Home home) {
         pending.put(player.getUniqueId(), new PendingEdit(type, home));
         send(player, type == Edit.NAME ? "changingName" : "changingID");
         player.closeInventory();
+    }
+
+    // ---- Dialogues natifs (clients 1.21.6 et plus) ----
+
+    private void enableDialogs() {
+        try {
+            Class.forName("io.papermc.paper.event.player.PlayerCustomClickEvent");
+            dialogs = new Dialogs(this);
+            getServer().getPluginManager().registerEvents(dialogs, this);
+        } catch (ClassNotFoundException | LinkageError e) {
+            dialogs = null;
+            getLogger().info("Dialogues indisponibles sur ce serveur : saisie dans le chat.");
+        }
+    }
+
+    private String dialogText(String path, String... replacements) {
+        return replace(getConfig().getString("dialogues." + path, ""), replacements);
+    }
+
+    private List<String> dialogLines(String path, String... replacements) {
+        List<String> out = new ArrayList<>();
+        for (String line : getConfig().getStringList("dialogues." + path)) {
+            out.add(replace(line, replacements));
+        }
+        return out;
+    }
+
+    private static String replace(String text, String... replacements) {
+        for (int i = 0; i + 1 < replacements.length; i += 2) {
+            text = text.replace(replacements[i], replacements[i + 1]);
+        }
+        return text;
+    }
+
+    private int dialogMax(Edit type) {
+        return Math.max(1, getConfig().getInt("dialogues." + (type == Edit.NAME ? "nom" : "id") + ".longueur-max", 256));
+    }
+
+    /**
+     * Dialogue de nom ou d'ID. typed = ce que le joueur avait écrit avant une erreur, error = ligne rouge en tête.
+     *
+     * @return false si le dialogue n'a pas pu être préparé
+     */
+    private boolean editDialog(Player player, Edit type, Home home, String typed, String error) {
+        String section = type == Edit.NAME ? "nom" : "id";
+        String[] vars = {"%home%", home.getDisplayName(), "%id%", home.getId()};
+        String initial = typed != null ? typed : type == Edit.NAME ? home.getDisplayName() : home.getId();
+        Dialogs.Screen screen = new Dialogs.Screen(dialogText(section + ".titre", vars), dialogLines(section + ".corps", vars), error,
+            new Dialogs.Field(dialogText(section + ".champ", vars), initial, dialogMax(type)),
+            dialogText("boutons.valider"), dialogText("boutons.annuler"));
+        return dialogs.show(player, section, screen, (p, confirmed, text) -> onEdited(p, type, home, confirmed, text),
+            () -> chatEdit(player, type, home));
+    }
+
+    private void onEdited(Player player, Edit type, Home home, boolean confirmed, String text) {
+        if (!confirmed) {
+            send(player, "changeCancel");
+            return;
+        }
+        // le home a pu être supprimé pendant que la fenêtre était ouverte
+        if (!store.get(player.getUniqueId()).contains(home)) {
+            send(player, "unknownHome");
+            return;
+        }
+        String message = text == null ? "" : text.trim();
+        int max = dialogMax(type);
+        String error = null;
+        if (message.isEmpty()) {
+            error = "vide";
+        } else if (message.length() > max) {
+            error = "trop-long";
+        } else if (message.chars().anyMatch(c -> c < 32 || c == 127)) {
+            error = "caracteres";
+        }
+        if (error != null) {
+            editDialog(player, type, home, text, dialogText("erreurs." + (type == Edit.NAME ? "nom-" : "id-") + error, "%max%", String.valueOf(max)));
+            return;
+        }
+        if (commit(player, type, home, message) == Commit.ID_TAKEN) {
+            editDialog(player, type, home, text, dialogText("erreurs.id-utilise"));
+        }
+    }
+
+    /**
+     * Demande de confirmation de suppression d'un home, par dialogue si le client le permet.
+     *
+     * @param gui ouvre le menu de confirmation classique (si l'affichage du dialogue échoue)
+     * @return false si le dialogue n'est pas utilisable : l'appelant ouvre alors le menu classique
+     */
+    public boolean askDelete(Player viewer, Player owner, Home home, boolean admin, Runnable gui) {
+        if (dialogs == null || !dialogs.supported(viewer)) {
+            return false;
+        }
+        viewer.closeInventory();
+        String[] vars = {"%home%", home.getDisplayName(), "%id%", home.getId(), "%joueur%", owner.getName()};
+        Dialogs.Screen screen = new Dialogs.Screen(dialogText("suppression.titre", vars),
+            dialogLines(admin ? "suppression.corps-admin" : "suppression.corps", vars), null, null,
+            dialogText("suppression.oui"), dialogText("suppression.non"));
+        UUID ownerId = owner.getUniqueId();
+        return dialogs.show(viewer, "suppression", screen, (p, confirmed, text) -> onDeleteAnswer(p, ownerId, home, admin, confirmed), gui);
+    }
+
+    private void onDeleteAnswer(Player viewer, UUID ownerId, Home home, boolean admin, boolean confirmed) {
+        Player owner = Bukkit.getPlayer(ownerId);
+        if (!confirmed) {
+            // même retour que le bouton « Ne pas supprimer le Home » du menu
+            if (admin && owner != null) {
+                new Menu.Admin(this, viewer, owner).open();
+            } else if (!admin) {
+                new Menu.Settings(this, viewer, home).open();
+            }
+            return;
+        }
+        if (owner == null) {
+            send(viewer, "admin.unknownPlayer");
+            return;
+        }
+        // mêmes droits que pour ouvrir le menu : soi-même, ou le staff
+        if (admin ? !viewer.hasPermission("shhomes.admin.delete") : !viewer.getUniqueId().equals(ownerId)) {
+            send(viewer, "noPerm");
+            return;
+        }
+        playSound(viewer, getConfig().getString("settings.clickSound"));
+        if (store.get(ownerId).remove(home)) {
+            store.save(ownerId);
+            if (admin) {
+                send(viewer, "admin.delete", "%home%", home.getDisplayName(), "%joueur%", owner.getName(), "%id%", home.getId());
+            } else {
+                send(viewer, "homeDeleted", "%home%", home.getDisplayName(), "%id%", home.getId());
+            }
+        } else {
+            send(viewer, "unknownHome");
+        }
     }
 
     // ---- Messages et sons ----
@@ -306,12 +464,20 @@ public final class SHHomes extends JavaPlugin implements Listener {
         if (!store.get(player.getUniqueId()).contains(home)) {
             return;
         }
-        if (edit.type() == Edit.ID) {
+        if (commit(player, edit.type(), home, message) == Commit.ID_TAKEN) {
+            send(player, "alreadyID");
+        }
+    }
+
+    /**
+     * Applique le nouveau nom ou le nouvel ID (chemin par le chat et chemin par le dialogue).
+     */
+    private Commit commit(Player player, Edit type, Home home, String message) {
+        if (type == Edit.ID) {
             String id = message.split(" ")[0];
             Home other = store.find(player.getUniqueId(), id);
             if (id.isEmpty() || (other != null && other != home)) {
-                send(player, "alreadyID");
-                return;
+                return Commit.ID_TAKEN;
             }
             home.setId(id);
             send(player, "IDChanged", "%home%", home.getDisplayName());
@@ -320,6 +486,7 @@ public final class SHHomes extends JavaPlugin implements Listener {
             send(player, "nameChanged", "%home%", message, "%id%", home.getId());
         }
         store.save(player.getUniqueId());
+        return Commit.DONE;
     }
 
     @EventHandler(ignoreCancelled = true)

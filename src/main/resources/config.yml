@@ -33,6 +33,59 @@ messages:
     teleport: "&7&l« &a&lSH &8&l» &7Téléportation au Home: &f%id% &7du joueur &a%joueur%&7."
     delete: "&7&l« &a&lSH &8&l» &7Suppression du Home: %home% &7du joueur &a%joueur%&7."
 
+# Saisies par dialogue natif Minecraft (clients 1.21.6 et plus) : nom d'un home, ID d'un home, confirmation de suppression.
+# Les clients plus anciens, ou actif: false, gardent la saisie dans le chat (mot « annuler ») et le menu de confirmation.
+# Chaque texte accepte les codes & ; %home% = nom du home, %id% = son ID, %joueur% = son propriétaire, %max% = longueur maximale.
+dialogues:
+  actif: true
+  # Version de protocole minimale du client pour recevoir un dialogue (771 = 1.21.6).
+  # Sans ViaVersion sur le serveur, tous les clients ont la version du serveur et reçoivent le dialogue.
+  min-protocol: 771
+  # Durée de validité d'une fenêtre ouverte, en secondes : au-delà, le clic est refusé.
+  expiration: 600
+  boutons:
+    valider: "&a&lValider"
+    annuler: "&c&lAnnuler"
+  nom:
+    titre: "&e&lNom du Home"
+    corps:
+      - "&7Home &e%id%&7 : %home%&r"
+      - "&7Ce nom apparaît dans le menu des homes. Vous pouvez y inclure des &bcodes couleurs&7."
+    champ: "&fNouveau nom"
+    # nombre maximal de caractères (codes couleurs compris), comme un message du chat
+    longueur-max: 256
+  id:
+    titre: "&e&lID du Home"
+    corps:
+      - "&7Home actuel : %home%&r &8(&e%id%&8)"
+      - "&7L'ID permet de s'y téléporter plus vite avec &e/home <id>&7. Un seul mot, sans espace."
+    champ: "&fNouvel ID"
+    longueur-max: 256
+  suppression:
+    titre: "&c&lSupprimer le Home ?"
+    corps:
+      - "&7Home : %home%&r &8(&e%id%&8)"
+      - "&4Action irréversible."
+    # variante affichée au staff qui supprime le home d'un autre joueur
+    corps-admin:
+      - "&7Home : %home%&r &8(&e%id%&8)"
+      - "&7Joueur : &a%joueur%"
+      - "&4Action irréversible."
+    oui: "&c&lSupprimer le Home"
+    non: "&a&lNe pas supprimer"
+  # Erreurs affichées en rouge en tête de la fenêtre, qui se rouvre avec le texte déjà saisi
+  erreurs:
+    nom-vide: "&cLe nom ne peut pas être vide."
+    nom-trop-long: "&cCe nom est trop long : %max% caractères maximum."
+    nom-caracteres: "&cCe nom contient des caractères non autorisés."
+    id-vide: "&cL'ID ne peut pas être vide."
+    id-trop-long: "&cCet ID est trop long : %max% caractères maximum."
+    id-caracteres: "&cCet ID contient des caractères non autorisés."
+    id-utilise: "&cCet ID est déjà utilisé pour un autre Home."
+  messages:
+    expire: "&7&l« &e&lSH &8&l» &7Cette fenêtre a &eexpiré&7, recommencez l'action."
+    erreur: "&7&l« &c&lSH &8&l» &7Une &cerreur &7est survenue, recommencez l'action."
+
 groups:
   default: #valeur par défaut si le joueur n'appartient à aucun des groupes ci-contre
     cooldown: 180

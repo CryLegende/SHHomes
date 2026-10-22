@@ -378,6 +378,16 @@ public abstract class Menu implements InventoryHolder {
             return super.title().replace("%joueur%", owner.getName());
         }
 
+        /**
+         * Clients 1.21.6 et plus : confirmation par dialogue ; sinon (ou dialogues désactivés) le menu ci-dessous.
+         */
+        @Override
+        public void open() {
+            if (!plugin.askDelete(viewer, owner, home, admin, () -> super.open())) {
+                super.open();
+            }
+        }
+
         @Override
         protected void fill() {
         }
