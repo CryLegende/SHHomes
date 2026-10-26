@@ -11,6 +11,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -30,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -181,6 +184,12 @@ public final class SHHomes extends JavaPlugin implements Listener {
     // ---- Actions partagées par les commandes et les menus ----
 
     public void teleport(Player player, Home home) {
+        Location location = home.getLocation();
+        if (location == null) {
+            // monde non chargé (SuperiorSkyblock2 absent ou en échec) : on ne peut pas juger, le home est gardé
+            send(player, "notValidHome");
+            return;
+        }
         if (!onOwnIsland(player.getUniqueId(), home.getWorld(), home.getX(), home.getZ())) {
             store.get(player.getUniqueId()).remove(home);
             store.save(player.getUniqueId());
@@ -192,11 +201,6 @@ public final class SHHomes extends JavaPlugin implements Listener {
         long wait = home.getLastUse() + cooldown(player) * 1000L - System.currentTimeMillis();
         if (home.getLastUse() != 0L && wait > 0) {
             send(player, "needToWait", "%time%", String.valueOf(wait / 1000L));
-            return;
-        }
-        Location location = home.getLocation();
-        if (location == null) {
-            send(player, "notValidHome");
             return;
         }
         home.setLastUse(System.currentTimeMillis());
@@ -423,15 +427,32 @@ public final class SHHomes extends JavaPlugin implements Listener {
         player.sendMessage(color(message));
     }
 
-    @SuppressWarnings("deprecation")
     public void playSound(Player player, String name) {
         if (name == null) {
             return;
         }
-        try {
-            player.playSound(player.getLocation(), Sound.valueOf(name), 1.0f, 1.0f);
-        } catch (IllegalArgumentException e) {
+        Sound sound = sound(name);
+        if (sound == null) {
             getLogger().warning("Son inconnu dans la config : " + name);
+            return;
+        }
+        player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+    }
+
+    /**
+     * Son lu en config : ancien nom (ENTITY_PLAYER_LEVELUP) ou clé (minecraft:entity.player.levelup).
+     */
+    static Sound sound(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String s = raw.trim();
+        if (s.indexOf(':') >= 0 || s.indexOf('.') >= 0) {
+            NamespacedKey key = NamespacedKey.fromString(s.toLowerCase(Locale.ROOT));
+            return key == null ? null : Registry.SOUND_EVENT.get(key);
+        }
+        try {
+            return (Sound) Sound.class.getField(s.toUpperCase(Locale.ROOT)).get(null);
+        } catch (ReflectiveOperationException | ClassCastException e) {
+            return null;
         }
     }
 
@@ -461,6 +482,10 @@ public final class SHHomes extends JavaPlugin implements Listener {
     }
 
     private void applyEdit(Player player, PendingEdit edit, String message) {
+        // parti entre le message et ce tick : store().get() rechargerait ses homes sans jamais les décharger
+        if (!player.isOnline()) {
+            return;
+        }
         Home home = edit.home();
         if (message.equalsIgnoreCase(getConfig().getString("settings.cancelWord", "annuler"))) {
             send(player, "changeCancel");

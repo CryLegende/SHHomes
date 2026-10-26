@@ -397,7 +397,11 @@ public abstract class Menu implements InventoryHolder {
             return switch (id) {
                 case "delete" -> e -> {
                     clickSound();
-                    if (plugin.store().get(owner.getUniqueId()).remove(home)) {
+                    // joueur parti pendant que le staff avait le menu ouvert : store().get() rechargerait ses homes
+                    // sans jamais les décharger (comme le chemin par dialogue, on s'arrête là)
+                    if (!owner.isOnline()) {
+                        plugin.send(viewer, "admin.unknownPlayer");
+                    } else if (plugin.store().get(owner.getUniqueId()).remove(home)) {
                         plugin.store().save(owner.getUniqueId());
                         if (admin) {
                             plugin.send(viewer, "admin.delete", "%home%", home.getDisplayName(), "%joueur%", owner.getName(), "%id%", home.getId());
@@ -439,6 +443,20 @@ public abstract class Menu implements InventoryHolder {
         @Override
         protected Set<String> dynamic() {
             return Set.of("homes");
+        }
+
+        /**
+         * Cible partie pendant que le staff avait un autre menu ouvert : store().get() rechargerait ses homes
+         * sans jamais les décharger.
+         */
+        @Override
+        public void open() {
+            if (!target.isOnline()) {
+                plugin.send(viewer, "admin.unknownPlayer");
+                viewer.closeInventory();
+                return;
+            }
+            super.open();
         }
 
         @Override

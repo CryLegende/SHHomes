@@ -78,6 +78,8 @@ public final class HomeStore {
     }
 
     private List<Home> read(UUID player) {
+        // fichier réparé à la main depuis le dernier échec : on le juge de nouveau, sinon plus rien ne serait sauvé
+        broken.remove(player);
         File file = file(player);
         if (!file.exists()) {
             return new ArrayList<>();

@@ -37,7 +37,8 @@ public final class Home {
      * null si le monde n'est pas chargé.
      */
     public Location getLocation() {
-        World w = Bukkit.getWorld(world);
+        // fichier sans monde : Bukkit.getWorld(null) lèverait une exception
+        World w = world == null ? null : Bukkit.getWorld(world);
         return w == null ? null : new Location(w, x, y, z, yaw, pitch);
     }
 
