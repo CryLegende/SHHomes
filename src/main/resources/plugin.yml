@@ -5,7 +5,13 @@ api-version: '1.21'
 author: Cry_Legende
 description: Homes sur l'île du joueur (remplace EasyHome, reprend ses données)
 depend: [ SuperiorSkyblock2 ]
-softdepend: [ ViaVersion ]
+# SHNetwork est facultatif : sans lui, les homes restent dans les fichiers de ce serveur comme avant.
+softdepend: [ ViaVersion, SHNetwork ]
+# Chargées par Paper dans le classloader du plugin : le serveur n'embarque que les pilotes MySQL et SQLite.
+# Seul le mode réseau (homes en MariaDB) s'en sert.
+libraries:
+  - com.zaxxer:HikariCP:5.1.0
+  - org.mariadb.jdbc:mariadb-java-client:3.4.1
 
 commands:
   home:
@@ -21,6 +27,9 @@ commands:
     description: Supprime un home
     permission: shhomes.delhome
     usage: /<command> <id>
+  shhomes:
+    description: Administration des homes (mode réseau)
+    usage: /<command> import
 
 permissions:
   shhomes.*:
@@ -36,6 +45,7 @@ permissions:
       shhomes.admin.tp: true
       shhomes.admin.delete: true
       shhomes.admin.view: true
+      shhomes.admin.import: true
   shhomes.home:
     default: false
   shhomes.sethome:
@@ -47,4 +57,6 @@ permissions:
   shhomes.admin.delete:
     default: false
   shhomes.admin.view:
+    default: false
+  shhomes.admin.import:
     default: false

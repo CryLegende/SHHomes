@@ -1,3 +1,29 @@
+# ======================================================================== #
+# SHHomes
+#
+# Plugin : homes sur l'île du joueur (remplace EasyHome, reprend ses données). Un home doit se trouver sur l'île
+# de son propriétaire. Avec SHNetwork, les homes sont rangés dans une base partagée et suivent le joueur d'un
+# serveur à l'autre (voir la section 'reseau' en bas du fichier).
+#
+# Commandes :
+#   /home [id]               Menu des homes, ou téléportation au home <id> (alias : /homes).
+#   /home view <joueur>      Menu des homes d'un joueur connecté (staff).
+#   /sethome [id]            Place un home à votre position.
+#   /delhome <id>            Supprime un home.
+#   /shhomes import          Mode réseau : reprend en base les fichiers data/<uuid>.json de ce serveur (une fois).
+#
+# Permissions :
+#   shhomes.home, shhomes.sethome, shhomes.delhome   Utiliser les commandes de même nom.
+#   shhomes.group.<groupe>   Limites du groupe (section 'groups') : nombre de homes et délai entre deux téléportations.
+#   shhomes.admin.view       /home view <joueur>.
+#   shhomes.admin.tp         Se téléporter au home d'un joueur depuis son menu.
+#   shhomes.admin.delete     Supprimer le home d'un joueur depuis son menu.
+#   shhomes.admin.import     /shhomes import.
+#
+# Les textes des messages sont dans la section 'messages', ceux des fenêtres dans 'dialogues'.
+#
+# ======================================================================== #
+
 settings:
   teleportSound: "ENTITY_ENDERMAN_TELEPORT"
   clickSound: "UI_BUTTON_CLICK"
@@ -27,11 +53,18 @@ messages:
     &8&l« &e&lSH &8&l» &7Tapez &bannuler &7pour annuler votre action.
   alreadyID: "&7&l« &c&lSH &8&l» &7Cet ID est déjà utilisé pour un autre Home."
   changeCancel: "&7&l« &e&lSH &8&l» &7Modification du Home &eannulé&7."
+  loading: "&7&l« &e&lSH &8&l» &7Les &ehomes &7sont en cours de chargement, réessayez dans quelques secondes."
+  islandUnknown: "&7&l« &6&lSH &8&l» &7Votre &6île &7n'est pas encore connue de ce serveur : réessayez dans un instant, votre home est conservé."
   admin:
     unknownPlayer: "&7&l« &c&lSH &8&l» &7Ce joueur n'a pas été trouvé."
     noHome: "&7&l« &c&lSH &8&l» &7Le joueur &c%joueur% &7ne possède pas de Home."
     teleport: "&7&l« &a&lSH &8&l» &7Téléportation au Home: &f%id% &7du joueur &a%joueur%&7."
     delete: "&7&l« &a&lSH &8&l» &7Suppression du Home: %home% &7du joueur &a%joueur%&7."
+    importUsage: "&7&l« &e&lSH &8&l» &7Usage : &e/shhomes import&7."
+    importUnavailable: "&7&l« &c&lSH &8&l» &7Le mode réseau n'est pas actif sur ce serveur : rien à reprendre."
+    importRunning: "&7&l« &6&lSH &8&l» &7Une reprise est &6déjà en cours&7."
+    importStart: "&7&l« &e&lSH &8&l» &7Reprise des fichiers de homes en base&7..."
+    importDone: "&7&l« &a&lSH &8&l» &a%joueurs% &7joueurs repris (&a%homes% &7homes), &e%deja% &7déjà en base, &c%illisibles% &7fichiers illisibles, &c%erreurs% &7erreurs."
 
 # Saisies par dialogue natif Minecraft (clients 1.21.6 et plus) : nom d'un home, ID d'un home, confirmation de suppression.
 # Les clients plus anciens, ou actif: false, gardent la saisie dans le chat (mot « annuler ») et le menu de confirmation.
@@ -306,3 +339,20 @@ menus:
           - ""
           - "&7&o(( &a&oCliquez &7&opour annuler la suppression &7&o))"
 
+
+# Mode réseau. Actif seulement si SHNetwork est installé et 'actif' vaut true : les homes sont alors lus et écrits
+# dans la base partagée (table shhomes_homes, une ligne par home) au lieu des fichiers data/<uuid>.json, chargés à
+# l'arrivée du joueur une fois sa sauvegarde terminée sur l'autre serveur. Sans SHNetwork, rien de ceci n'est utilisé.
+# Demande un redémarrage. Les fichiers existants sont repris avec /shhomes import.
+reseau:
+  actif: true
+  # Durée maximale, en secondes, pendant laquelle on attend que l'autre serveur ait fini de sauvegarder
+  # le joueur avant de lire ses homes
+  attente-max-secondes: 10
+  base-de-donnees:
+    url: "jdbc:mariadb://127.0.0.1:3306/bo_net"
+    utilisateur: shhomes
+    mot-de-passe: CHANGE_ME
+    # Délai maximal de connexion et de réponse de la base, en millisecondes. Une base qui ne répond pas
+    # laisse le joueur sans accès à ses homes (message de chargement), la lecture est réessayée toutes les 10 secondes.
+    delai-ms: 3000

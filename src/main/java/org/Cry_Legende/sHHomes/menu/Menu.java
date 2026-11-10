@@ -456,6 +456,10 @@ public abstract class Menu implements InventoryHolder {
                 viewer.closeInventory();
                 return;
             }
+            if (!plugin.ensureReady(viewer, target.getUniqueId())) {
+                viewer.closeInventory();
+                return;
+            }
             super.open();
         }
 

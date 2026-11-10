@@ -3,6 +3,8 @@ package org.Cry_Legende.sHHomes;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 
+import org.Cry_Legende.sHHomes.network.NetworkHomes;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +25,7 @@ import java.util.logging.Level;
 /**
  * Homes des joueurs : un fichier JSON par joueur (data/&lt;uuid&gt;.json), format d'EasyHome.
  * Chaque modification est écrite aussitôt (EasyHome n'écrivait qu'à la déconnexion).
+ * Avec SHNetwork (mode réseau), les homes passent par la base partagée et les fichiers ne servent plus.
  */
 public final class HomeStore {
 
@@ -33,6 +36,8 @@ public final class HomeStore {
     // Fichiers illisibles : jamais réécrits pour ne pas effacer les homes du joueur
     private final Set<UUID> broken = ConcurrentHashMap.newKeySet();
     private final ExecutorService writer = Executors.newSingleThreadExecutor(r -> new Thread(r, "SHHomes-ecriture"));
+    // Non nul seulement en mode réseau : les homes sont alors lus et écrits dans la base partagée
+    private NetworkHomes network;
 
     public HomeStore(SHHomes plugin, File dir) {
         this.plugin = plugin;
@@ -40,7 +45,31 @@ public final class HomeStore {
         dir.mkdirs();
     }
 
+    public void setNetwork(NetworkHomes network) {
+        this.network = network;
+    }
+
+    /**
+     * Vrai quand les homes du joueur sont disponibles. Toujours vrai sur un serveur seul ; en mode réseau, faux
+     * pendant leur lecture en base (get() rend alors une liste vide qui n'est pas la vraie).
+     */
+    public boolean isReady(UUID player) {
+        return network == null || network.isReady(player);
+    }
+
+    /** Arrivée d'un joueur : lecture de son fichier, ou lancement du chargement en base en mode réseau. */
+    public void join(UUID player) {
+        if (network != null) {
+            network.beginLoad(player);
+        } else {
+            get(player);
+        }
+    }
+
     public List<Home> get(UUID player) {
+        if (network != null) {
+            return network.homes(player);
+        }
         return homes.computeIfAbsent(player, this::read);
     }
 
@@ -54,6 +83,10 @@ public final class HomeStore {
     }
 
     public void save(UUID player) {
+        if (network != null) {
+            network.save(player);
+            return;
+        }
         List<Home> list = homes.get(player);
         if (list == null || broken.contains(player)) {
             return;
@@ -63,11 +96,18 @@ public final class HomeStore {
     }
 
     public void unload(UUID player) {
+        if (network != null) {
+            network.unload(player);
+            return;
+        }
         save(player);
         homes.remove(player);
     }
 
     public void shutdown() {
+        if (network != null) {
+            network.stop();
+        }
         homes.keySet().forEach(this::save);
         writer.shutdown();
         try {
@@ -75,6 +115,25 @@ public final class HomeStore {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    /**
+     * Homes d'un fichier local, pour la reprise en base.
+     *
+     * @return null si le fichier est illisible
+     */
+    public List<Home> readFile(File file) {
+        try {
+            Home[] array = gson.fromJson(Files.readString(file.toPath(), StandardCharsets.UTF_8), Home[].class);
+            return array == null ? new ArrayList<>() : new ArrayList<>(Arrays.asList(array));
+        } catch (IOException | JsonParseException e) {
+            plugin.getLogger().log(Level.SEVERE, "Fichier de homes illisible, ignoré : " + file.getName(), e);
+            return null;
+        }
+    }
+
+    public File directory() {
+        return dir;
     }
 
     private List<Home> read(UUID player) {

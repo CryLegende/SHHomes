@@ -32,10 +32,24 @@ Les clients plus anciens, ou `dialogues.actif: false`, gardent exactement l'anci
 
 Chaque fenêtre porte un jeton secret à usage unique, valable `dialogues.expiration` secondes : un clic ancien, rejoué, forgé ou venant d'un autre joueur est ignoré, et le home est revérifié au moment d'agir (toujours présent, bon propriétaire).
 
+## Mode réseau
+
+Avec **SHNetwork** installé (et `reseau.actif: true`, valeur par défaut), plusieurs serveurs de jeu partagent les homes :
+
+- les homes sont lus et écrits en MariaDB (table `shhomes_homes`, une ligne par home : clé stable, position, ID, contenu JSON identique à celui des fichiers) au lieu de `data/<uuid>.json` ;
+- à l'arrivée d'un joueur, une fois que l'autre serveur a confirmé sa sauvegarde, ses homes sont lus en base hors du fil principal. Tant qu'ils ne sont pas chargés, `/home`, `/sethome`, `/delhome` et le menu répondent par le message `loading` : le joueur ne voit jamais une liste vide qui n'est pas la sienne. Si la base ne répond pas, la lecture est réessayée toutes les 10 secondes ;
+- chaque modification n'écrit que les lignes changées (ajout, mise à jour, suppression), jamais tout le fichier du joueur : deux écritures ne s'écrasent pas ;
+- au départ du joueur, SHNetwork attend que ces écritures soient validées en base avant de le laisser entrer sur l'autre serveur ;
+- un home dont l'île est simplement inconnue du serveur (joueur sans île connue, monde des îles absent) n'est jamais supprimé : le joueur reçoit le message `islandUnknown`. Hors réseau, la règle reste celle d'avant (home supprimé s'il n'est pas sur l'île) ;
+- un home situé sur une île hébergée par l'autre serveur se téléporte comme avant : la garde des îles étrangères de SHSkyBridge annule la téléportation et envoie le joueur sur le serveur de l'île, au point du home ;
+- `/shhomes import` (permission `shhomes.admin.import`, console comprise) reprend en base les fichiers `data/<uuid>.json` du serveur où on la lance. À faire une seule fois, sur le serveur qui a les homes ; un joueur qui a déjà des homes en base n'est pas touché, la commande peut être relancée.
+
+Sans SHNetwork, ou sans les clés `reseau` dans la configuration, le plugin se comporte comme avant : fichiers JSON locaux, mêmes messages. La table se crée toute seule au démarrage, ou à la main avec `sql/schema.sql`. `/home view <joueur>` ne voit que les joueurs connectés au même serveur.
+
 ## Dépendances
 
 - Obligatoires : `SuperiorSkyblock2`
-- Optionnelles : `ViaVersion`
+- Optionnelles : `ViaVersion`, `SHNetwork` (mode réseau)
 
 ## Commandes
 
@@ -44,6 +58,7 @@ Chaque fenêtre porte un jeton secret à usage unique, valable `dialogues.expira
 | `/home` | `/homes` | Menu des homes, /home <id>, /home view <joueur> | `shhomes.home` |
 | `/sethome` | — | Place un home à votre position | `shhomes.sethome` |
 | `/delhome` | — | Supprime un home | `shhomes.delhome` |
+| `/shhomes import` | — | Mode réseau : reprend en base les fichiers de homes de ce serveur | `shhomes.admin.import` |
 
 ## Permissions
 
@@ -57,6 +72,7 @@ Chaque fenêtre porte un jeton secret à usage unique, valable `dialogues.expira
 | `shhomes.admin.tp` | — | `false` |
 | `shhomes.admin.delete` | — | `false` |
 | `shhomes.admin.view` | — | `false` |
+| `shhomes.admin.import` | — | `false` |
 
 ## Configuration
 
@@ -65,17 +81,19 @@ Fichiers par défaut repris du serveur (secrets remplacés par `CHANGE_ME`). Cli
 <pre>
 plugins/SHHomes/
 └── <a href="src/main/resources/config.yml">config.yml</a>
-    ├── settings, messages, groups, menus        (inchangés)
-    └── <a href="src/main/resources/config.yml#L39">dialogues</a>
-        ├── <a href="src/main/resources/config.yml#L40">actif</a>                 dialogues activés (false : chat comme avant)
-        ├── <a href="src/main/resources/config.yml#L43">min-protocol</a>          version de protocole minimale (771 = 1.21.6)
-        ├── <a href="src/main/resources/config.yml#L45">expiration</a>            validité d'une fenêtre, en secondes
-        ├── <a href="src/main/resources/config.yml#L46">boutons</a>               textes Valider / Annuler
-        ├── <a href="src/main/resources/config.yml#L49">nom</a>                   fenêtre du nom (titre, corps, champ, longueur-max)
-        ├── <a href="src/main/resources/config.yml#L57">id</a>                    fenêtre de l'ID
-        ├── <a href="src/main/resources/config.yml#L64">suppression</a>           confirmation de suppression (corps, corps-admin, oui, non)
-        ├── <a href="src/main/resources/config.yml#L77">erreurs</a>               erreurs affichées en rouge dans la fenêtre
-        └── <a href="src/main/resources/config.yml#L85">messages</a>              fenêtre expirée, erreur inattendue
+    ├── settings, groups, menus                  (inchangés)
+    ├── messages                                 (+ loading, islandUnknown, admin.import*)
+    ├── <a href="src/main/resources/config.yml#L72">dialogues</a>
+    │   ├── <a href="src/main/resources/config.yml#L73">actif</a>                 dialogues activés (false : chat comme avant)
+    │   ├── <a href="src/main/resources/config.yml#L76">min-protocol</a>          version de protocole minimale (771 = 1.21.6)
+    │   ├── <a href="src/main/resources/config.yml#L78">expiration</a>            validité d'une fenêtre, en secondes
+    │   ├── <a href="src/main/resources/config.yml#L79">boutons</a>               textes Valider / Annuler
+    │   ├── <a href="src/main/resources/config.yml#L82">nom</a>                   fenêtre du nom (titre, corps, champ, longueur-max)
+    │   ├── <a href="src/main/resources/config.yml#L90">id</a>                    fenêtre de l'ID
+    │   ├── <a href="src/main/resources/config.yml#L97">suppression</a>           confirmation de suppression (corps, corps-admin, oui, non)
+    │   ├── <a href="src/main/resources/config.yml#L110">erreurs</a>               erreurs affichées en rouge dans la fenêtre
+    │   └── <a href="src/main/resources/config.yml#L118">messages</a>              fenêtre expirée, erreur inattendue
+    └── <a href="src/main/resources/config.yml#L347">reseau</a>                 mode réseau (actif, attente-max-secondes, base-de-donnees)
 </pre>
 
 La section `dialogues` est complète dans le jar. Le plugin ne réécrit jamais le `config.yml` du serveur : toute clé absente du fichier (la section entière ou une seule ligne) est lue dans le `config.yml` embarqué dans le jar, sans rien y copier, et les fenêtres gardent donc leurs textes (titre, boutons, champ, erreurs). Pour personnaliser un texte ou un réglage, ajoutez la clé (ou toute la section) dans le `config.yml` du serveur : elle l'emporte sur celle du jar.

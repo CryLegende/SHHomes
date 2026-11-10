@@ -7,6 +7,10 @@ import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.Cry_Legende.sHHomes.menu.Menu;
+import org.Cry_Legende.sHHomes.network.HomeDatabase;
+import org.Cry_Legende.sHHomes.network.NetworkHomes;
+import org.Cry_Legende.sHHomes.network.NetworkLink;
+import org.Cry_Legende.sHHomes.network.ShNetworkLink;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -15,6 +19,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -58,7 +64,15 @@ public final class SHHomes extends JavaPlugin implements Listener {
      */
     private enum Commit {DONE, ID_TAKEN}
 
+    /**
+     * Position d'un home par rapport à l'île du joueur. UNKNOWN : l'île ou son monde n'est pas connu de ce
+     * serveur, on ne peut pas juger.
+     */
+    public enum IslandCheck {INSIDE, OUTSIDE, UNKNOWN}
+
     private HomeStore store;
+    // Non nul seulement avec SHNetwork : les homes sont dans la base partagée
+    private NetworkHomes network;
     private final Map<UUID, PendingEdit> pending = new ConcurrentHashMap<>();
     // null sur un serveur sans dialogues (avant 1.21.6) : tout passe alors par le chat
     private Dialogs dialogs;
@@ -68,13 +82,15 @@ public final class SHHomes extends JavaPlugin implements Listener {
         migrateFromEasyHome();
         saveDefaultConfig();
         store = new HomeStore(this, new File(getDataFolder(), "data"));
-        Bukkit.getOnlinePlayers().forEach(p -> store.get(p.getUniqueId()));
+        enableNetwork();
+        Bukkit.getOnlinePlayers().forEach(p -> store.join(p.getUniqueId()));
 
         Commands commands = new Commands(this);
         for (String name : List.of("home", "sethome", "delhome")) {
             getCommand(name).setExecutor(commands);
             getCommand(name).setTabCompleter(commands);
         }
+        getCommand("shhomes").setExecutor(new AdminCommand(this));
         getServer().getPluginManager().registerEvents(this, this);
         enableDialogs();
     }
@@ -92,6 +108,57 @@ public final class SHHomes extends JavaPlugin implements Listener {
         if (store != null) {
             store.shutdown();
         }
+    }
+
+    /**
+     * Passe en mode réseau si SHNetwork est installé et 'reseau.actif' est vrai. Les classes qui touchent à SHNetwork
+     * ne sont chargées qu'ici : sans lui, le plugin se comporte exactement comme avant.
+     */
+    private void enableNetwork() {
+        if (!getConfig().getBoolean("reseau.actif", true)) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("SHNetwork")) {
+            return;
+        }
+        HomeDatabase db = null;
+        try {
+            NetworkLink link = ShNetworkLink.open();
+            db = new HomeDatabase(
+                getConfig().getString("reseau.base-de-donnees.url"),
+                getConfig().getString("reseau.base-de-donnees.utilisateur"),
+                getConfig().getString("reseau.base-de-donnees.mot-de-passe"),
+                Math.max(250, getConfig().getInt("reseau.base-de-donnees.delai-ms", 3000)));
+            db.createTable();
+            Duration wait = Duration.ofSeconds(Math.max(1, getConfig().getInt("reseau.attente-max-secondes", 10)));
+            NetworkHomes net = new NetworkHomes(this, db, link, wait);
+            net.start();
+            network = net;
+            store.setNetwork(net);
+            getLogger().info("SHNetwork détecté : les homes sont partagés entre les serveurs (base partagée).");
+        } catch (Exception | LinkageError e) {
+            if (db != null) {
+                db.close();
+            }
+            getLogger().log(Level.SEVERE, "SHNetwork présent mais inutilisable, homes locaux à ce serveur : " + e);
+        }
+    }
+
+    /** Mode réseau actif, ou null sur un serveur seul. */
+    public NetworkHomes network() {
+        return network;
+    }
+
+    /**
+     * Vrai si les homes du joueur sont disponibles. En mode réseau, le temps de leur lecture en base, il reçoit le
+     * message « loading » : il ne voit jamais une liste vide qui n'est pas la sienne.
+     */
+    public boolean ensureReady(Player viewer, UUID owner) {
+        if (store.isReady(owner)) {
+            return true;
+        }
+        send(viewer, "loading");
+        return false;
     }
 
     // Premier démarrage : reprend la config et les homes d'EasyHome (les originaux restent en place)
@@ -162,19 +229,34 @@ public final class SHHomes extends JavaPlugin implements Listener {
      * Même règle qu'EasyHome : monde normal de l'île, à moins de getIslandSize() du centre.
      */
     public static boolean onOwnIsland(UUID player, String world, double x, double z) {
+        return checkIsland(player, world, x, z) == IslandCheck.INSIDE;
+    }
+
+    /**
+     * Comme {@link #onOwnIsland(UUID, String, double, double)}, en distinguant « hors de l'île » de « île inconnue
+     * de ce serveur » (joueur sans île connue, monde des îles absent).
+     */
+    public static IslandCheck checkIsland(UUID player, String world, double x, double z) {
         SuperiorPlayer sp = SuperiorSkyblockAPI.getPlayer(player);
         Island island = sp == null ? null : sp.getIsland();
-        if (island == null || world == null) {
-            return false;
+        if (island == null) {
+            return IslandCheck.UNKNOWN;
+        }
+        if (world == null) {
+            return IslandCheck.OUTSIDE;
         }
         Dimension dimension = normal();
         World islandWorld = SuperiorSkyblockAPI.getIslandsWorld(island, dimension);
-        if (islandWorld == null || !islandWorld.getName().equalsIgnoreCase(world)) {
-            return false;
-        }
         Location center = island.getCenter(dimension);
+        if (islandWorld == null || center == null) {
+            return IslandCheck.UNKNOWN;
+        }
+        if (!islandWorld.getName().equalsIgnoreCase(world)) {
+            return IslandCheck.OUTSIDE;
+        }
         int size = island.getIslandSize();
-        return x < center.getX() + size && x > center.getX() - size && z < center.getZ() + size && z > center.getZ() - size;
+        boolean inside = x < center.getX() + size && x > center.getX() - size && z < center.getZ() + size && z > center.getZ() - size;
+        return inside ? IslandCheck.INSIDE : IslandCheck.OUTSIDE;
     }
 
     public static boolean onOwnIsland(Player player, Location loc) {
@@ -184,13 +266,24 @@ public final class SHHomes extends JavaPlugin implements Listener {
     // ---- Actions partagées par les commandes et les menus ----
 
     public void teleport(Player player, Home home) {
+        if (!ensureReady(player, player.getUniqueId())) {
+            return;
+        }
         Location location = home.getLocation();
         if (location == null) {
             // monde non chargé (SuperiorSkyblock2 absent ou en échec) : on ne peut pas juger, le home est gardé
             send(player, "notValidHome");
             return;
         }
-        if (!onOwnIsland(player.getUniqueId(), home.getWorld(), home.getX(), home.getZ())) {
+        IslandCheck check = checkIsland(player.getUniqueId(), home.getWorld(), home.getX(), home.getZ());
+        if (check == IslandCheck.UNKNOWN && network != null) {
+            // En réseau, une île que ce serveur ne connaît pas (encore) n'est pas une île perdue : le home est gardé.
+            // Pour un home sur une île hébergée par un autre serveur, SHSkyBridge (garde des îles étrangères) annule
+            // la téléportation ci-dessous et envoie le joueur sur le serveur de l'île, au point du home.
+            send(player, "islandUnknown");
+            return;
+        }
+        if (check != IslandCheck.INSIDE) {
             store.get(player.getUniqueId()).remove(home);
             store.save(player.getUniqueId());
             getLogger().info("Home " + home.getId() + " de " + player.getName() + " supprimé (hors de son île) : "
@@ -221,6 +314,9 @@ public final class SHHomes extends JavaPlugin implements Listener {
      * Crée un home à la position du joueur ; id null = premier "homeN" libre.
      */
     public void createHome(Player player, String id) {
+        if (!ensureReady(player, player.getUniqueId())) {
+            return;
+        }
         List<Home> homes = store.get(player.getUniqueId());
         if (homes.size() >= maxHomes(player)) {
             send(player, "reachedMaxHomes");
@@ -416,7 +512,7 @@ public final class SHHomes extends JavaPlugin implements Listener {
         return text == null ? "" : ChatColor.translateAlternateColorCodes('&', text);
     }
 
-    public void send(Player player, String path, String... replacements) {
+    public void send(CommandSender target, String path, String... replacements) {
         String message = getConfig().getString("messages." + path);
         if (message == null || message.isEmpty()) {
             return;
@@ -424,7 +520,7 @@ public final class SHHomes extends JavaPlugin implements Listener {
         for (int i = 0; i + 1 < replacements.length; i += 2) {
             message = message.replace(replacements[i], replacements[i + 1]);
         }
-        player.sendMessage(color(message));
+        target.sendMessage(color(message));
     }
 
     public void playSound(Player player, String name) {
@@ -460,7 +556,7 @@ public final class SHHomes extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        store.get(event.getPlayer().getUniqueId());
+        store.join(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
@@ -537,6 +633,9 @@ public final class SHHomes extends JavaPlugin implements Listener {
     }
 
     public void openHomes(Player player) {
+        if (!ensureReady(player, player.getUniqueId())) {
+            return;
+        }
         new Menu.Homes(this, player).open();
     }
 }

@@ -59,6 +59,8 @@ final class Commands implements TabExecutor {
             Player target = Bukkit.getPlayer(args[1]);
             if (target == null) {
                 plugin.send(player, "admin.unknownPlayer");
+            } else if (!plugin.ensureReady(player, target.getUniqueId())) {
+                return;
             } else if (plugin.store().get(target.getUniqueId()).isEmpty()) {
                 plugin.send(player, "admin.noHome", "%joueur%", target.getName());
             } else {
@@ -84,6 +86,9 @@ final class Commands implements TabExecutor {
      * Home du joueur par ID, avec le message d'erreur adapté s'il n'existe pas.
      */
     private Home find(Player player, String id) {
+        if (!plugin.ensureReady(player, player.getUniqueId())) {
+            return null;
+        }
         if (plugin.store().get(player.getUniqueId()).isEmpty()) {
             plugin.send(player, "noHome");
             return null;

@@ -19,6 +19,8 @@ public final class Home {
     private String id;
     private String material;
     private Long lastUse;
+    // Identifiant de la ligne en base (mode réseau) : transient, donc absent des fichiers JSON
+    private transient String key;
 
     // Constructeur vide pour Gson
     @SuppressWarnings("unused")
@@ -91,6 +93,18 @@ public final class Home {
 
     public void setMaterial(String material) {
         this.material = material;
+    }
+
+    /**
+     * Identifiant stable de la ligne du home en base partagée (l'ID du home peut changer, pas cette clé).
+     * Vide tant que le home n'a pas été écrit en base.
+     */
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public long getLastUse() {
