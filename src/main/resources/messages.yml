@@ -1,0 +1,48 @@
+# Messages de SHHomes. Codes couleur &.
+# Placeholders courants : %id% (ID du home), %home% (nom du home), %joueur% (propriétaire), %time% (secondes).
+# Sous-section admin : commandes /shhomes et menu staff. %subcommands% : sous-commandes permises à l'expéditeur ;
+# %file% et %error% : fichier illisible au rechargement ; %nombre%, %monde%, %x%, %y%, %z%, %dernier% : ligne de list.
+
+noPerm: "&7&l« &c&lSH &8&l» &7Vous n'avez pas la permission de faire ça."
+unknownCommand: "&7&l« &c&lSH &8&l» &7Vous ne pouvez pas faire ça ici."
+needToWait: "&7&l« &c&lSH &8&l» &7Vous devez attendre encore &c%time% secondes &7pour utiliser ce Home."
+teleportComplete: "&7&l« &a&lSH &8&l» &7Téléportation au Home: %home%&7."
+homeCreated: "&7&l« &a&lSH &8&l» &7Le home: %id% &7a été créé."
+notOnIsland: "&7&l« &c&lSH &8&l» &7Vous n'êtes pas sur &cvotre île&7. Vous ne pouvez pas placer de Home ici. "
+noHome: "&7&l« &c&lSH &8&l» &7Vous n'avez &caucun Home &7actuellement."
+unknownHome: "&7&l« &c&lSH &8&l» &7Vous n'avez pas de home avec cet ID."
+reachedMaxHomes: "&7&l« &c&lSH &8&l» &7Vous avez atteint votre &cnombre maximum de Homes&7."
+positionChanged: "&7&l« &a&lSH &8&l» &7La position du Home %id% &7a été modifié."
+materialChanged: "&7&l« &a&lSH &8&l» &7L'item du Home %id% &7a été modifié."
+nameChanged: "&7&l« &a&lSH &8&l» &7Le nom du Home %id% &7est maintenant: %home%&7."
+IDChanged: "&7&l« &a&lSH &8&l» &7L'ID du Home %home% &7a été modifié."
+homeDeleted: "&7&l« &a&lSH &8&l» &7Le Home %id% &7a bien été supprimé."
+notValidHome: "&7&l« &c&lSH &8&l» &7Le Home vient d'être &csupprimé&7, il n'est plus positionné sur &cvotre île&7."
+changingName: |-
+  &8&l« &e&lSH &8&l» &7Écrivez le &enom du Home &7qui apparaitra sur le menu des homes.
+  &8&l« &e&lSH &8&l» &7Tapez &bannuler &7pour annuler votre action.
+changingID: |-
+  &8&l« &e&lSH &8&l» &7Choisissez le &enouvel ID &7de ce Home (&e/home <id>&7)
+  &8&l« &e&lSH &8&l» &7Tapez &bannuler &7pour annuler votre action.
+alreadyID: "&7&l« &c&lSH &8&l» &7Cet ID est déjà utilisé pour un autre Home."
+changeCancel: "&7&l« &e&lSH &8&l» &7Modification du Home &eannulé&7."
+loading: "&7&l« &e&lSH &8&l» &7Les &ehomes &7sont en cours de chargement, réessayez dans quelques secondes."
+islandUnknown: "&7&l« &6&lSH &8&l» &7Votre &6île &7n'est pas encore connue de ce serveur : réessayez dans un instant, votre home est conservé."
+admin:
+  unknownPlayer: "&7&l« &c&lSH &8&l» &7Ce joueur n'a pas été trouvé."
+  noHome: "&7&l« &c&lSH &8&l» &7Le joueur &c%joueur% &7ne possède pas de Home."
+  teleport: "&7&l« &a&lSH &8&l» &7Téléportation au Home: &f%id% &7du joueur &a%joueur%&7."
+  delete: "&7&l« &a&lSH &8&l» &7Suppression du Home: %home% &7du joueur &a%joueur%&7."
+  importUsage: "&7&l« &e&lSH &8&l» &7Usage : &e/shhomes import&7."
+  importUnavailable: "&7&l« &c&lSH &8&l» &7Le mode réseau n'est pas actif sur ce serveur : rien à reprendre."
+  importRunning: "&7&l« &6&lSH &8&l» &7Une reprise est &6déjà en cours&7."
+  importStart: "&7&l« &e&lSH &8&l» &7Reprise des fichiers de homes en base&7..."
+  importDone: "&7&l« &a&lSH &8&l» &a%joueurs% &7joueurs repris (&a%homes% &7homes), &e%deja% &7déjà en base, &c%illisibles% &7fichiers illisibles, &c%erreurs% &7erreurs."
+  usage: "&7&l« &e&lSH &8&l» &7Utilisation : &e/shhomes &7<&e%subcommands%&7>"
+  reloaded: "&7&l« &a&lSH &8&l» &7Configuration et messages de SHHomes &arechargés&7. Le bloc &ereseau &7demande un redémarrage."
+  reloadFailed: "&7&l« &c&lSH &8&l» &7Rechargement annulé : &c%file% &7est illisible (&c%error%&7). L'ancienne configuration est gardée."
+  listUsage: "&7&l« &e&lSH &8&l» &7Usage : &e/shhomes list <joueur>&7."
+  listError: "&7&l« &c&lSH &8&l» &7Les homes de &c%joueur% &7n'ont pas pu être lus (voir la console)."
+  listHeader: "&7&l« &e&lSH &8&l» &7Homes de &e%joueur% &7(&e%nombre%&7) :"
+  listLine: "&8• &e%id% &7%home% &8» &f%monde% %x% %y% %z% &8| &7dernier usage : &f%dernier%"
+

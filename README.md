@@ -55,24 +55,29 @@ Sans SHNetwork, ou sans les clés `reseau` dans la configuration, le plugin se c
 
 | Commande | Alias | Description | Permission |
 |---|---|---|---|
-| `/home` | `/homes` | Menu des homes, /home <id>, /home view <joueur> | `shhomes.home` |
+| `/home` | `/homes` | Menu des homes, `/home <id>`, `/home view <joueur>` (staff) | `shhomes.home` (`/home view` : `shhomes.admin.view`) |
 | `/sethome` | — | Place un home à votre position | `shhomes.sethome` |
 | `/delhome` | — | Supprime un home | `shhomes.delhome` |
+| `/shhomes reload` | — | Recharge `config.yml` et `messages.yml` (le bloc `reseau` demande un redémarrage) ; un fichier invalide annule le rechargement ; les homes ne sont jamais touchés | `shhomes.admin.reload` |
 | `/shhomes import` | — | Mode réseau : reprend en base les fichiers de homes de ce serveur | `shhomes.admin.import` |
+| `/shhomes list <joueur>` | — | Liste les homes d'un joueur, connecté ou non (pseudo exact), depuis la console aussi | `shhomes.admin.list` |
+
+`/shhomes` sans argument affiche une ligne d'usage qui ne liste que les sous-commandes permises à l'expéditeur.
 
 ## Permissions
 
 | Permission | Description | Par défaut |
 |---|---|---|
-| `shhomes.*` | — | `op` |
-| `shhomes.admin.*` | — | `false` |
-| `shhomes.home` | — | `false` |
-| `shhomes.sethome` | — | `false` |
-| `shhomes.delhome` | — | `false` |
-| `shhomes.admin.tp` | — | `false` |
-| `shhomes.admin.delete` | — | `false` |
-| `shhomes.admin.view` | — | `false` |
-| `shhomes.admin.import` | — | `false` |
+| `shhomes.*` | Toutes les permissions de SHHomes | `op` |
+| `shhomes.home`, `shhomes.sethome`, `shhomes.delhome` | Utiliser la commande de même nom | `false` |
+| `shhomes.group.vip`, `shhomes.group.vip+`, `shhomes.group.vipelite` | Limites du groupe de même nom dans `groups` (nombre de homes, délai). Un nœud par clé de `groups` | `op` |
+| `shhomes.admin` | Toutes les permissions d'administration (parent des suivantes) | `op` |
+| `shhomes.admin.view` | `/home view <joueur>` | `false` |
+| `shhomes.admin.tp` | Se téléporter au home d'un joueur depuis son menu | `false` |
+| `shhomes.admin.delete` | Supprimer le home d'un joueur depuis son menu | `false` |
+| `shhomes.admin.import` | `/shhomes import` | `false` |
+| `shhomes.admin.reload` | `/shhomes reload` | `false` |
+| `shhomes.admin.list` | `/shhomes list <joueur>` | `false` |
 
 ## Configuration
 
@@ -80,9 +85,9 @@ Fichiers par défaut repris du serveur (secrets remplacés par `CHANGE_ME`). Cli
 
 <pre>
 plugins/SHHomes/
+├── <a href="src/main/resources/messages.yml">messages.yml</a>   messages et sous-section admin
 └── <a href="src/main/resources/config.yml">config.yml</a>
-    ├── settings, groups, menus                  (inchangés)
-    ├── messages                                 (+ loading, islandUnknown, admin.import*)
+    ├── settings, groups, menus
     ├── <a href="src/main/resources/config.yml#L72">dialogues</a>
     │   ├── <a href="src/main/resources/config.yml#L73">actif</a>                 dialogues activés (false : chat comme avant)
     │   ├── <a href="src/main/resources/config.yml#L76">min-protocol</a>          version de protocole minimale (771 = 1.21.6)

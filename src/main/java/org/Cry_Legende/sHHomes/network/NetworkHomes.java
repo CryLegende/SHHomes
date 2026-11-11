@@ -103,6 +103,25 @@ public final class NetworkHomes {
         return list != null ? list : Collections.emptyList();
     }
 
+    /**
+     * Homes d'un joueur lus directement en base, pour la consultation : le cache et les empreintes d'écriture ne sont
+     * pas touchés. À appeler hors du fil principal.
+     */
+    public List<Home> peek(UUID uuid) throws SQLException {
+        List<Home> list = new ArrayList<>();
+        for (HomeDatabase.Row row : db.load(uuid)) {
+            try {
+                Home home = gson.fromJson(row.data(), Home.class);
+                if (home != null) {
+                    list.add(home);
+                }
+            } catch (JsonParseException e) {
+                plugin.getLogger().log(Level.WARNING, "Home illisible en base : " + uuid + " " + row.key());
+            }
+        }
+        return list;
+    }
+
     // ------------------------------------------------------------------ arrivée
 
     /** Lance le chargement des homes d'un joueur qui arrive, une fois sa sauvegarde sur l'autre serveur confirmée. */

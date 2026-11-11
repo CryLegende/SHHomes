@@ -28,35 +28,62 @@ commands:
     permission: shhomes.delhome
     usage: /<command> <id>
   shhomes:
-    description: Administration des homes (mode réseau)
-    usage: /<command> import
+    description: Administration des homes
+    usage: /<command> <reload|import|list>
 
 permissions:
   shhomes.*:
+    description: Toutes les permissions de SHHomes
     default: op
     children:
       shhomes.home: true
       shhomes.sethome: true
       shhomes.delhome: true
-      shhomes.admin.*: true
-  shhomes.admin.*:
-    default: false
-    children:
-      shhomes.admin.tp: true
-      shhomes.admin.delete: true
-      shhomes.admin.view: true
-      shhomes.admin.import: true
+      shhomes.admin: true
   shhomes.home:
+    description: Utiliser /home
     default: false
   shhomes.sethome:
+    description: Utiliser /sethome
     default: false
   shhomes.delhome:
+    description: Utiliser /delhome
+    default: false
+  # shhomes.group.<clé de groups> est géré dynamiquement : un nœud par groupe du config.yml (limites du groupe).
+  shhomes.group.vip:
+    description: "Limites du groupe « vip » (groups.vip) : nombre de homes et délai entre deux téléportations"
+    default: op
+  shhomes.group.vip+:
+    description: Limites du groupe « vip+ » (groups.vip+)
+    default: op
+  shhomes.group.vipelite:
+    description: Limites du groupe « vipelite » (groups.vipelite)
+    default: op
+  shhomes.admin:
+    description: Toutes les permissions d'administration de SHHomes
+    default: op
+    children:
+      shhomes.admin.view: true
+      shhomes.admin.tp: true
+      shhomes.admin.delete: true
+      shhomes.admin.import: true
+      shhomes.admin.reload: true
+      shhomes.admin.list: true
+  shhomes.admin.view:
+    description: /home view <joueur>, menu des homes d'un joueur connecté
     default: false
   shhomes.admin.tp:
+    description: Se téléporter au home d'un joueur depuis son menu
     default: false
   shhomes.admin.delete:
-    default: false
-  shhomes.admin.view:
+    description: Supprimer le home d'un joueur depuis son menu
     default: false
   shhomes.admin.import:
+    description: /shhomes import, reprise des fichiers de homes en base (mode réseau)
+    default: false
+  shhomes.admin.reload:
+    description: /shhomes reload, recharger config.yml et messages.yml
+    default: false
+  shhomes.admin.list:
+    description: /shhomes list <joueur>, liste des homes d'un joueur
     default: false
