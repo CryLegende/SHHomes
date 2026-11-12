@@ -42,13 +42,13 @@ permissions:
       shhomes.admin: true
   shhomes.home:
     description: Utiliser /home
-    default: false
+    default: op
   shhomes.sethome:
     description: Utiliser /sethome
-    default: false
+    default: op
   shhomes.delhome:
     description: Utiliser /delhome
-    default: false
+    default: op
   # shhomes.group.<clé de groups> est géré dynamiquement : un nœud par groupe du config.yml (limites du groupe).
   shhomes.group.vip:
     description: "Limites du groupe « vip » (groups.vip) : nombre de homes et délai entre deux téléportations"

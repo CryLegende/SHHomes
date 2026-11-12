@@ -69,7 +69,7 @@ Sans SHNetwork, ou sans les clés `reseau` dans la configuration, le plugin se c
 | Permission | Description | Par défaut |
 |---|---|---|
 | `shhomes.*` | Toutes les permissions de SHHomes | `op` |
-| `shhomes.home`, `shhomes.sethome`, `shhomes.delhome` | Utiliser la commande de même nom | `false` |
+| `shhomes.home`, `shhomes.sethome`, `shhomes.delhome` | Utiliser la commande de même nom | `op` |
 | `shhomes.group.vip`, `shhomes.group.vip+`, `shhomes.group.vipelite` | Limites du groupe de même nom dans `groups` (nombre de homes, délai). Un nœud par clé de `groups` | `op` |
 | `shhomes.admin` | Toutes les permissions d'administration (parent des suivantes) | `op` |
 | `shhomes.admin.view` | `/home view <joueur>` | `false` |
