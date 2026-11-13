@@ -85,6 +85,8 @@ public final class SHHomes extends JavaPlugin implements Listener {
     private final Map<UUID, PendingEdit> pending = new ConcurrentHashMap<>();
     // null sur un serveur sans dialogues (avant 1.21.6) : tout passe alors par le chat
     private Dialogs dialogs;
+    // Aveugle le joueur tant qu'un dialogue est affiché ; null sur un serveur sans dialogues
+    private DialogBlindness blindness;
 
     @Override
     public void onEnable() {
@@ -118,6 +120,9 @@ public final class SHHomes extends JavaPlugin implements Listener {
     public void onDisable() {
         if (dialogs != null) {
             dialogs.clear();
+        }
+        if (blindness != null) {
+            blindness.shutdown();
         }
         Bukkit.getOnlinePlayers().forEach(p -> {
             if (p.getOpenInventory().getTopInventory().getHolder() instanceof Menu) {
@@ -194,6 +199,9 @@ public final class SHHomes extends JavaPlugin implements Listener {
     public void applyFiles(FileConfiguration[] files) {
         settings = files[0];
         messages = files[1];
+        if (blindness != null) {
+            blindness.setEnabled(settings.getBoolean("aveugler-pendant-dialogues", true));
+        }
     }
 
     private YamlConfiguration readYaml(String name) throws ConfigException {
@@ -475,7 +483,8 @@ public final class SHHomes extends JavaPlugin implements Listener {
     private void enableDialogs() {
         try {
             Class.forName("io.papermc.paper.event.player.PlayerCustomClickEvent");
-            dialogs = new Dialogs(this);
+            blindness = new DialogBlindness(this, getConfig().getBoolean("aveugler-pendant-dialogues", true));
+            dialogs = new Dialogs(this, blindness);
             getServer().getPluginManager().registerEvents(dialogs, this);
         } catch (ClassNotFoundException | LinkageError e) {
             dialogs = null;
