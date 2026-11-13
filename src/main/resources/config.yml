@@ -18,8 +18,7 @@
 # Permissions :
 #   shhomes.home, shhomes.sethome, shhomes.delhome   Utiliser les commandes de même nom.
 #   shhomes.group.<groupe>   Limites du groupe (section 'groups') : nombre de homes et délai entre deux téléportations.
-#                            Un nœud par clé de 'groups', par exemple shhomes.group.vip, shhomes.group.vip+ ou
-#                            shhomes.group.vipelite.
+#                            Un nœud par clé de 'groups', par exemple shhomes.group.vip ou shhomes.group.vip+.
 #   shhomes.admin            Toutes les permissions d'administration ci-dessous (op par défaut).
 #   shhomes.admin.view       /home view <joueur>.
 #   shhomes.admin.tp         Se téléporter au home d'un joueur depuis son menu.
@@ -97,17 +96,14 @@ dialogues:
 
 groups:
   default: #valeur par défaut si le joueur n'appartient à aucun des groupes ci-contre
-    cooldown: 180
+    cooldown: 60
     maxHomes: 3
   vip: #la permission sera donc shhomes.group.vip
-    cooldown: 120
-    maxHomes: 8
-  vip+: #la permission sera donc shhomes.group.vip+
-    cooldown: 60
-    maxHomes: 15
-  vipelite: #la permission sera donc shhomes.group.vipelite
     cooldown: 30
-    maxHomes: 20
+    maxHomes: 5
+  vip+: #la permission sera donc shhomes.group.vip+
+    cooldown: 10
+    maxHomes: 10
 
 menus:
   home:
@@ -326,7 +322,7 @@ reseau:
   # le joueur avant de lire ses homes
   attente-max-secondes: 10
   base-de-donnees:
-    url: "jdbc:mariadb://127.0.0.1:3306/bo_net"
+    url: "jdbc:mariadb://127.0.0.1:3306/minecraft"
     utilisateur: shhomes
     mot-de-passe: CHANGE_ME
     # Délai maximal de connexion et de réponse de la base, en millisecondes. Une base qui ne répond pas
